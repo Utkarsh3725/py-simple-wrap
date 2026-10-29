@@ -113,7 +113,6 @@ def test_calculate_tip_public_imports():
     assert public_helper is module_helper
 
 
-
 @pytest.mark.parametrize(
     "total,people,expected",
     [
@@ -276,8 +275,29 @@ def test_split_bill_exact_public_imports():
     assert public_split("10.00", 3) == split_bill_exact("10.00", 3)
 
 
-@pytest.mark.parametrize("amount", [float("nan"), float("inf"), float("-inf"), "NaN", "Infinity", Decimal("sNaN"), Decimal("-Infinity")])
-@pytest.mark.parametrize("operation", [format_money, lambda value: add_tax(value, 10), lambda value: calculate_discount(value, 10), lambda value: calculate_tip(value, 10), lambda value: split_bill(value, 2), lambda value: split_bill_exact(value, 2)])
+@pytest.mark.parametrize(
+    "amount",
+    [
+        float("nan"),
+        float("inf"),
+        float("-inf"),
+        "NaN",
+        "Infinity",
+        Decimal("sNaN"),
+        Decimal("-Infinity"),
+    ],
+)
+@pytest.mark.parametrize(
+    "operation",
+    [
+        format_money,
+        lambda value: add_tax(value, 10),
+        lambda value: calculate_discount(value, 10),
+        lambda value: calculate_tip(value, 10),
+        lambda value: split_bill(value, 2),
+        lambda value: split_bill_exact(value, 2),
+    ],
+)
 def test_money_helpers_reject_non_finite_amounts(amount, operation):
     with pytest.raises(EasyMoneyError, match="finite"):
         operation(amount)
