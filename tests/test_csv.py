@@ -29,20 +29,34 @@ def write_people_csv(path):
     )
 
 
+def _symlink_or_skip(link, target):
+    """Skip only when Windows denies the privilege to create symbolic links."""
+    try:
+        link.symlink_to(target)
+    except OSError as error:
+        if getattr(error, "winerror", None) == 1314:
+            pytest.skip("Creating symbolic links requires a Windows privilege")
+        raise
+
+
 class TestIterCsvRows:
-    def test_dict_rows_and_unicode(self, tmp_path):
+    @pytest.mark.parametrize("newline", ["\n", "\r\n"], ids=["lf", "crlf"])
+    def test_dict_rows_and_unicode(self, tmp_path, newline):
         path = tmp_path / "people.csv"
-        path.write_text('Name,Note\nŽan,"hello, world"\nAlice,"two\nlines"\n', encoding="utf-8")
+        # Write exact bytes so Windows does not translate the fixture's newlines.
+        content = f'Name,Note{newline}Žan,"hello, world"{newline}Alice,"two{newline}lines"{newline}'
+        path.write_bytes(content.encode("utf-8"))
         assert list(iter_csv_rows(str(path))) == [
             {"Name": "Žan", "Note": "hello, world"},
-            {"Name": "Alice", "Note": "two\nlines"},
+            {"Name": "Alice", "Note": f"two{newline}lines"},
         ]
 
     def test_list_rows_include_header_and_custom_delimiter(self, tmp_path):
         path = tmp_path / "people.csv"
         path.write_text("Name;Age\nAlice;24\n", encoding="utf-8")
         assert list(iter_csv_rows(str(path), return_dict=False, delimiter=";")) == [
-            ["Name", "Age"], ["Alice", "24"]
+            ["Name", "Age"],
+            ["Alice", "24"],
         ]
 
     def test_header_only_has_no_dict_rows(self, tmp_path):
@@ -192,7 +206,7 @@ class TestMergeCsvFiles:
             monkeypatch.chdir(tmp_path)
             output = "./second.csv"
         elif alias == "symlink":
-            output.symlink_to(second)
+            _symlink_or_skip(output, second)
         else:
             os.link(second, output)
         before = {path.name: path.read_bytes() for path in tmp_path.iterdir()}
@@ -208,7 +222,7 @@ class TestMergeCsvFiles:
         ]
         write_people_csv(source)
         target.write_bytes(b"leave alone")
-        output.symlink_to(target)
+        _symlink_or_skip(output, target)
 
         merge_csv_files([source], output)
 
@@ -1185,3 +1199,34 @@ class TestDropEmptyCsvRows:
 
         assert drop_empty_csv_rows(str(csv_file), delimiter=";") == 1
         assert csv_file.read_text(encoding="utf-8") == "a;b\n1;2\n"
+
+
+@pytest.mark.parametrize("ending", ["", "\n", "\r\n", "\r"])
+@pytest.mark.parametrize("delimiter", [",", ";"])
+@pytest.mark.parametrize("as_dict", [True, False])
+def test_append_row_preserves_record_boundary(tmp_path, ending, delimiter, as_dict):
+    path = tmp_path / "records.csv"
+    original = f'Name{delimiter}Note\r\nAda{delimiter}"line one\nline two"{ending}'
+    path.write_bytes(original.encode("utf-8"))
+    row = {"Name": "Zoë", "Note": "new"} if as_dict else ["Zoë", "new"]
+    append_row_to_csv(str(path), row, delimiter=delimiter)
+    assert read_csv_to_list(str(path), delimiter=delimiter) == [
+        {"Name": "Ada", "Note": "line one\nline two"},
+        {"Name": "Zoë", "Note": "new"},
+    ]
+    assert path.read_bytes().startswith(original.encode("utf-8"))
+
+
+def test_append_row_after_header_without_newline(tmp_path):
+    path = tmp_path / "records.csv"
+    path.write_text("Name,Age", encoding="utf-8")
+    append_row_to_csv(str(path), ["Ada", 25])
+    assert read_csv_to_list(str(path)) == [{"Name": "Ada", "Age": "25"}]
+
+
+def test_append_invalid_dict_leaves_unterminated_file_unchanged(tmp_path):
+    path = tmp_path / "records.csv"
+    path.write_bytes(b"Name\nAda")
+    with pytest.raises(ValueError):
+        append_row_to_csv(str(path), {"Unknown": "value"})
+    assert path.read_bytes() == b"Name\nAda"

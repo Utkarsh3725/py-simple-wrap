@@ -1,14 +1,22 @@
-name: Away status on PR
+name: Away status on mention
 
 on:
-  pull_request:
-    types: [opened]
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: away-status-mentions
+  cancel-in-progress: false
 
 jobs:
   away-status:
     runs-on: ubuntu-latest
-    permissions:
-      pull-requests: write
     steps:
       - uses: actions/checkout@v7
       - name: Check if within away window and comment
@@ -16,7 +24,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           set -euo pipefail
 
