@@ -389,6 +389,7 @@ from .easy_url import (
     EasyUrlError,
     add_query_param,
     get_domain,
+    get_fragment,
     get_path,
     get_query_values,
     is_https,

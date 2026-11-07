@@ -191,6 +191,40 @@ def get_path(url: str) -> str:
     return _parsed(url).path or "/"
 
 
+def get_fragment(url: str) -> str:
+    """
+    Return the fragment identifier from a link.
+
+    The fragment is the part after `#`, often used to jump to a section on
+    a page. The returned value keeps percent escapes as they appear in `url`.
+
+    Args:
+        url (str): A full link, such as `"https://school.example/guide#setup"`.
+
+    Returns:
+        str: The fragment without `#`, or an empty string when there is none.
+
+    Raises:
+        EasyUrlError: If `url` is not a full link.
+
+    Example:
+        === "The Py_simple Way"
+            ```python
+            from py_simple import get_fragment
+
+            print(get_fragment("https://school.example/guide#setup"))
+            ```
+
+        === "The Traditional Way"
+            ```python
+            from urllib.parse import urlparse
+
+            print(urlparse("https://school.example/guide#setup").fragment)
+            ```
+    """
+    return _parsed(url).fragment
+
+
 def remove_query_param(url: str, key: str) -> str:
     """
     Remove one query parameter from a link.

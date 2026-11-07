@@ -1,12 +1,14 @@
 import pytest
 
 from py_simple_package.src.py_simple import (
+    get_fragment as public_get_fragment,
     get_path as public_get_path,
 )
 from py_simple_package.src.py_simple.easy_url import (
     EasyUrlError,
     add_query_param,
     get_domain,
+    get_fragment,
     get_path,
     get_query_values,
     is_https,
@@ -41,6 +43,24 @@ def test_get_path():
 
 def test_get_path_public_export():
     assert public_get_path is get_path
+
+
+def test_get_fragment():
+    assert get_fragment("https://school.example/guide#setup") == "setup"
+    assert get_fragment("https://school.example/guide#section%202") == "section%202"
+    assert get_fragment("https://school.example/guide") == ""
+    assert get_fragment("https://school.example/guide?topic=urls#setup") == "setup"
+
+
+def test_get_fragment_rejects_invalid_urls():
+    with pytest.raises(EasyUrlError):
+        get_fragment("school.example/guide#setup")
+    with pytest.raises(EasyUrlError):
+        get_fragment(None)
+
+
+def test_get_fragment_public_export():
+    assert public_get_fragment is get_fragment
 
 
 def test_rejects_incomplete_url():
