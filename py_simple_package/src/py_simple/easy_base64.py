@@ -384,3 +384,88 @@ def decode_urlsafe_text(encoded: str) -> str:
         return base64.b64decode(standard_b64, validate=True).decode("utf-8")
     except (ValueError, UnicodeDecodeError, binascii.Error) as error:
         raise EasyBase64Error(f"\n\nERROR: {error}") from None
+
+
+def encode_urlsafe_bytes(data: bytes) -> str:
+    """
+    Encode raw bytes with the URL-safe Base64 alphabet.
+
+    The result uses `-` and `_` instead of `+` and `/`, making it safe to
+    place in URL paths. Standard `=` padding is kept.
+
+    Args:
+        data (bytes): Binary data to encode.
+
+    Returns:
+        str: URL-safe Base64 text, or an empty string for empty bytes.
+
+    Raises:
+        EasyBase64Error: If `data` is not bytes.
+
+    Example:
+        === "The Py_simple Way"
+            ```python
+            from py_simple import encode_urlsafe_bytes
+
+            token_part = encode_urlsafe_bytes(b"\\xfb\\xff")  # "-_8="
+            ```
+
+        === "The Traditional Way"
+            ```python
+            import base64
+
+            token_part = base64.urlsafe_b64encode(b"\\xfb\\xff").decode("ascii")
+            ```
+    """
+    if not isinstance(data, bytes):
+        raise EasyBase64Error("\n\nERROR: data must be bytes.")
+    return base64.urlsafe_b64encode(data).decode("ascii")
+
+
+def decode_urlsafe_bytes(encoded: str) -> bytes:
+    """
+    Decode URL-safe Base64 text back into raw bytes.
+
+    Accepts URL-safe `-` and `_` characters, with or without trailing `=`
+    padding. Use `decode_urlsafe_text` when the decoded value is UTF-8 text.
+
+    Args:
+        encoded (str): URL-safe Base64 text to decode.
+
+    Returns:
+        bytes: The original bytes, or empty bytes for empty input.
+
+    Raises:
+        EasyBase64Error: If `encoded` is not a string or is not valid
+            URL-safe Base64.
+
+    Example:
+        === "The Py_simple Way"
+            ```python
+            from py_simple import decode_urlsafe_bytes
+
+            raw = decode_urlsafe_bytes("-_8")  # b"\\xfb\\xff"
+            ```
+
+        === "The Traditional Way"
+            ```python
+            import base64
+
+            raw = base64.urlsafe_b64decode("-_8=")
+            ```
+    """
+    if not isinstance(encoded, str):
+        raise EasyBase64Error("\n\nERROR: encoded text must be a string.")
+    if not encoded:
+        return b""
+    if "+" in encoded or "/" in encoded:
+        raise EasyBase64Error(
+            "\n\nERROR: encoded text contains invalid URL-safe characters."
+        )
+    try:
+        remainder = len(encoded) % 4
+        padded = encoded + ("=" * (4 - remainder)) if remainder in (2, 3) else encoded
+        standard_b64 = padded.translate(str.maketrans("-_", "+/"))
+        return base64.b64decode(standard_b64, validate=True)
+    except (ValueError, binascii.Error) as error:
+        raise EasyBase64Error(f"\n\nERROR: {error}") from None

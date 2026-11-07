@@ -6,10 +6,12 @@ from py_simple_package.src.py_simple import (
     decode_text as public_decode_text,
     decode_to_bytes as public_decode_to_bytes,
     decode_to_file as public_decode_to_file,
+    decode_urlsafe_bytes as public_decode_urlsafe_bytes,
     decode_urlsafe_text as public_decode_urlsafe_text,
     encode_bytes as public_encode_bytes,
     encode_file as public_encode_file,
     encode_text as public_encode_text,
+    encode_urlsafe_bytes as public_encode_urlsafe_bytes,
     encode_urlsafe_text as public_encode_urlsafe_text,
     is_base64 as public_is_base64,
 )
@@ -18,10 +20,12 @@ from py_simple_package.src.py_simple.easy_base64 import (
     decode_text,
     decode_to_bytes,
     decode_to_file,
+    decode_urlsafe_bytes,
     decode_urlsafe_text,
     encode_bytes,
     encode_file,
     encode_text,
+    encode_urlsafe_bytes,
     encode_urlsafe_text,
     is_base64,
 )
@@ -233,3 +237,34 @@ def test_decode_urlsafe_text_wraps_invalid_utf8():
 
 def test_public_import_includes_decode_urlsafe_text():
     assert public_decode_urlsafe_text is decode_urlsafe_text
+
+
+def test_urlsafe_bytes_round_trip():
+    original = b"\x00\xfb\xff"
+    encoded = encode_urlsafe_bytes(original)
+    assert encoded == "APv_"
+    assert decode_urlsafe_bytes(encoded) == original
+    assert decode_urlsafe_bytes("-_8") == b"\xfb\xff"
+    assert decode_urlsafe_bytes("") == b""
+
+
+def test_encode_urlsafe_bytes_rejects_non_bytes():
+    with pytest.raises(EasyBase64Error, match="data must be bytes"):
+        encode_urlsafe_bytes("text")
+
+
+@pytest.mark.parametrize("value", [None, 123, b"-_8", ["-_8"]])
+def test_decode_urlsafe_bytes_rejects_non_string(value):
+    with pytest.raises(EasyBase64Error, match="encoded text must be a string"):
+        decode_urlsafe_bytes(value)
+
+
+@pytest.mark.parametrize("value", ["not-valid!!!", "+/8=", "a"])
+def test_decode_urlsafe_bytes_rejects_invalid_input(value):
+    with pytest.raises(EasyBase64Error):
+        decode_urlsafe_bytes(value)
+
+
+def test_public_imports_include_urlsafe_bytes_helpers():
+    assert public_encode_urlsafe_bytes is encode_urlsafe_bytes
+    assert public_decode_urlsafe_bytes is decode_urlsafe_bytes
