@@ -3,12 +3,14 @@ import pytest
 from py_simple_package.src.py_simple import (
     print_centered as public_print_centered,
     print_styled as public_print_styled,
+    print_table as public_print_table,
 )
 from py_simple_package.src.py_simple.easy_terminal import (
     EasyTerminal,
     print_centered,
     print_rule,
     print_styled,
+    print_table,
 )
 
 
@@ -304,3 +306,29 @@ def test_print_rule_public_imports(monkeypatch, capsys):
     assert public_print is module_print
     public_print(title="Hi")
     assert capsys.readouterr().out == "──────── Hi ────────\n"
+
+
+def test_print_table_displays_headers_and_rows(capsys):
+    print_table(["Name", "Score"], [["Ada", 95], ["Linus", 88]])
+    output = capsys.readouterr().out
+    for value in ("Name", "Score", "Ada", "95", "Linus", "88"):
+        assert value in output
+
+
+def test_print_table_displays_rich_markup_as_literal_text(capsys):
+    print_table(["Label"], [["[bold]literal[/bold]"]])
+    assert "[bold]literal[/bold]" in capsys.readouterr().out
+
+
+def test_print_table_rejects_missing_headers():
+    with pytest.raises(ValueError, match="at least one column"):
+        print_table([], [])
+
+
+def test_print_table_rejects_rows_with_wrong_number_of_values():
+    with pytest.raises(ValueError, match="same number of values"):
+        print_table(["Name", "Score"], [["Ada"]])
+
+
+def test_print_table_public_import():
+    assert public_print_table is print_table

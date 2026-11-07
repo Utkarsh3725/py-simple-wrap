@@ -330,3 +330,59 @@ def print_rule(title: str = "") -> None:
     from rich.text import Text
 
     Console().rule(Text(str(title)))
+
+
+def print_table(headers: list[str], rows: list[list[object]]) -> None:
+    """
+    Print rows of values as a readable terminal table.
+
+    Values are shown as literal text, so strings containing Rich markup
+    characters are not interpreted as styles.
+
+    Args:
+        headers (list[str]): Column names, such as `["Name", "Score"]`.
+        rows (list[list[object]]): Table rows, with one value for each header.
+
+    Raises:
+        ValueError: If no headers are provided or a row has the wrong number
+            of values.
+
+    Example:
+        === "The Py_simple Way"
+            ```python
+            from py_simple import print_table
+
+            print_table(["Name", "Score"], [["Ada", 95], ["Linus", 88]])
+            ```
+
+        === "The Traditional Way"
+            ```python
+            from rich.console import Console
+            from rich.table import Table
+            from rich.text import Text
+
+            table = Table("Name", "Score")
+            table.add_row("Ada", "95")
+            table.add_row("Linus", "88")
+            Console().print(table)
+            ```
+    """
+    from rich.console import Console
+    from rich.table import Table
+    from rich.text import Text
+
+    if not headers:
+        raise ValueError("headers must contain at least one column")
+
+    table = Table()
+    for header in headers:
+        table.add_column(Text(str(header)))
+
+    for row in rows:
+        if len(row) != len(headers):
+            raise ValueError(
+                "each row must have the same number of values as headers"
+            )
+        table.add_row(*(Text(str(value)) for value in row))
+
+    Console().print(table)
