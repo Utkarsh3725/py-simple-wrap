@@ -51,3 +51,6 @@ The [Code Coverage Guide](coverage_template.md) shows how to run `pytest-cov` lo
 ## Still stuck, or something's not covered here?
 
 That's okay too. Open an issue, or mention it in your pull request, and it'll get sorted out together — see [CONTRIBUTING.md](https://github.com/sara-czasak/py-simple-wrap/blob/main/CONTRIBUTING.md) for how to reach out. Nobody's expected to figure this out alone.
+
+**⏳ "My helper is async. How do I await it in a test without slowing the suite down?"**
+The [Testing Async Helpers](async_tests_template.md) guide starts with runnable result and error tests, then explains fake waits and event-loop cleanup.
